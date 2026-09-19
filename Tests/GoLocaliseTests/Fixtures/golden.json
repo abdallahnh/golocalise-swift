@@ -1,0 +1,10 @@
+{
+  "projectId": "project-golden",
+  "environment": "production",
+  "namespace": "common",
+  "key": "welcome",
+  "englishA": "Welcome {name} 👋",
+  "arabicA": "مرحباً {name} 👋​",
+  "englishB": "Welcome back {name} 👋",
+  "arabicB": "أهلاً بعودتك {name} 👋​"
+}
