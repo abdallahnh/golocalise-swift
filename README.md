@@ -44,3 +44,30 @@ keeps the last-known-good cache and bundled fallback available.
 The SwiftUI demo source is in `Examples/SwiftUIExample`. It is a configuration-
 driven, read-only client with release status, supported-locale switching, search,
 namespace filtering, pull-to-refresh, large-list rendering, and RTL support.
+
+## Installation
+
+### Swift Package Manager
+
+Add GoLocalise to your project using Swift Package Manager:
+
+```swift
+dependencies: [
+    .package(
+        url: "https://github.com/abdallahnh/golocalise-swift.git",
+        from: "1.0.0"
+    )
+]
+```
+
+Then add `GoLocalise` as a dependency to your target.
+
+You can also add the package directly in Xcode using:
+
+**File → Add Package Dependencies**
+
+and enter:
+
+```text
+https://github.com/abdallahnh/golocalise-swift.git
+```
