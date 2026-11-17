@@ -1,11 +1,7 @@
-## 1.1.0
+## 1.1.1
 
-### New
-- **Build-only namespaces.** Namespaces set to "Build only" in GoLocalise are left out of OTA releases. Download them in CI from `GET /api/v1/projects/{projectId}/translations?environment=production&namespace=<name>&format=json` (one `<namespace>.json` per namespace) and bundle them with the app; lookups fall back to these bundled strings.
-  - JavaScript: `bundledFromExports({ checkout, legal })`
-  - Swift: `ExportedBundledTranslations(bundle: .main, subdirectory: "GoLocalise")`
-  - Android: `ExportedBundledTranslations.fromAssets(context.assets, "golocalise")`
+### Security
+- Development and build dependencies updated (vitest 4.1.12 and its toolchain) to pick up upstream security fixes. No runtime dependency changes for the SDK itself.
 
-Ready-made Bitbucket Pipelines and GitHub Actions steps are in the GoLocalise Developer Hub.
-
-No breaking changes.
+### Unchanged
+- Same API and behaviour as 1.1.0 (build-only namespaces from CI export files). No breaking changes.
