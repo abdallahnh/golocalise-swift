@@ -120,3 +120,44 @@ public struct DictionaryBundledTranslations: BundledTranslationAdapter {
     values[locale]?[namespace]?[key]
   }
 }
+
+/// Bundled translations from CI/CD export files of build-only namespaces.
+///
+/// The pipeline writes one JSON file per namespace (`checkout.json`, …) from
+/// `GET /api/v1/projects/{id}/translations?environment=…&namespace=…&format=json`
+/// into the app bundle. Build-only namespaces are not in OTA releases, so
+/// lookups fall through to these strings.
+public struct ExportedBundledTranslations: BundledTranslationAdapter {
+  /// namespace → locale → key → text
+  private let values: [String: [String: [String: String]]]
+
+  /// Loads every `*.json` file in `subdirectory` of `bundle`; the file name is the namespace.
+  public init(bundle: Bundle = .main, subdirectory: String = "GoLocalise") {
+    var files: [String: Data] = [:]
+    for url in bundle.urls(forResourcesWithExtension: "json", subdirectory: subdirectory) ?? [] {
+      if let data = try? Data(contentsOf: url) {
+        files[url.deletingPathExtension().lastPathComponent] = data
+      }
+    }
+    self.init(files: files)
+  }
+
+  /// `files`: namespace → export file contents.
+  public init(files: [String: Data]) {
+    var values: [String: [String: [String: String]]] = [:]
+    for (namespace, data) in files {
+      guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+      if let byLocale = object["data"] as? [String: [String: String]] {
+        values[namespace] = byLocale
+      } else if let flat = object as? [String: String] {
+        values[namespace] = ["*": flat]
+      }
+    }
+    self.values = values
+  }
+
+  public func translation(locale: String, namespace: String, key: String) -> String? {
+    guard let byLocale = values[namespace] else { return nil }
+    return byLocale[locale]?[key] ?? byLocale["*"]?[key]
+  }
+}

@@ -210,10 +210,11 @@ public final class GoLocaliseClient: @unchecked Sendable {
     fallback: String? = nil
   ) -> String {
     let value = translation(for: key, namespace: namespace, fallback: fallback)
-    guard let format = canonicalAppleFormat(value, argumentCount: arguments.count),
+    let typed = resolveTypedArguments(value, arguments: arguments, locale: localeSnapshot())
+    guard let format = canonicalAppleFormat(typed.message, argumentCount: arguments.count),
       appleStringArgumentCount(format) == arguments.count
     else { return value }
-    return String(format: format, arguments: arguments.map { $0 as NSString })
+    return String(format: format, arguments: typed.arguments.map { $0 as NSString })
   }
 
   /// Selects a locale-aware plural form and formats its canonical count token.
@@ -249,10 +250,11 @@ public final class GoLocaliseClient: @unchecked Sendable {
       )
     else { return selected }
     guard !arguments.isEmpty else { return withCount }
-    guard let format = canonicalAppleFormat(withCount, argumentCount: arguments.count),
+    let typed = resolveTypedArguments(withCount, arguments: arguments, locale: locale)
+    guard let format = canonicalAppleFormat(typed.message, argumentCount: arguments.count),
       appleStringArgumentCount(format) == arguments.count
     else { return withCount }
-    return String(format: format, arguments: arguments.map { $0 as NSString })
+    return String(format: format, arguments: typed.arguments.map { $0 as NSString })
   }
 
   public var currentRelease: Int? {
@@ -460,6 +462,74 @@ private func displayCount(_ count: Double) -> String {
   count.rounded() == count ? String(Int(count)) : String(count)
 }
 
+// Typed placeholders: `{0}` inserts the argument as text, `{0:number}` formats it
+// as an integer and `{0:decimal:2}` as a fixed-decimal number, using the
+// client's locale. Anything that is not a number is inserted unchanged.
+private let typedTokenPattern = try! NSRegularExpression(
+  pattern: #"\{(\d+):(?:(number)|decimal:(\d))\}"#)
+private let indexedTokenPattern = try! NSRegularExpression(
+  pattern: #"\{(\d+)(?::(?:number|decimal:\d))?\}"#)
+
+private let typedIndexTokenPattern = try! NSRegularExpression(
+  pattern: #"^\d+:(?:number|decimal:\d)$"#)
+
+private func isTypedIndexToken(_ token: String) -> Bool {
+  typedIndexTokenPattern.firstMatch(
+    in: token, range: NSRange(token.startIndex..., in: token)) != nil
+}
+
+private func formatNumberArgument(_ text: String, fractionDigits: Int, locale: String) -> String {
+  let trimmed = text.trimmingCharacters(in: .whitespaces)
+  guard !trimmed.isEmpty, let number = Double(trimmed), number.isFinite else { return text }
+  let formatter = NumberFormatter()
+  formatter.locale = Locale(identifier: locale.replacingOccurrences(of: "-", with: "_"))
+  formatter.numberStyle = .decimal
+  formatter.minimumFractionDigits = fractionDigits
+  formatter.maximumFractionDigits = fractionDigits
+  return formatter.string(from: NSNumber(value: number)) ?? text
+}
+
+/// Replaces typed tokens with plain `{n}` tokens and pre-formats the matching
+/// arguments, so the rest of the formatting pipeline stays unchanged.
+private func resolveTypedArguments(
+  _ message: String,
+  arguments: [String],
+  locale: String
+) -> (message: String, arguments: [String]) {
+  guard message.contains(":") else { return (message, arguments) }
+  let range = NSRange(message.startIndex..., in: message)
+  let typed = typedTokenPattern.matches(in: message, range: range)
+  guard !typed.isEmpty else { return (message, arguments) }
+  var indexes = Set<Int>()
+  for match in indexedTokenPattern.matches(in: message, range: range) {
+    if let r = Range(match.range(at: 1), in: message), let index = Int(message[r]) {
+      indexes.insert(index)
+    }
+  }
+  let oneBased =
+    !indexes.isEmpty && !indexes.contains(0) && indexes.min() == 1
+    && indexes.max() == arguments.count
+  var formatted = arguments
+  for match in typed {
+    guard let r = Range(match.range(at: 1), in: message), let index = Int(message[r]) else {
+      continue
+    }
+    let argumentIndex = oneBased ? index - 1 : index
+    guard argumentIndex >= 0, argumentIndex < formatted.count else { continue }
+    var digits = 0
+    if match.range(at: 3).location != NSNotFound,
+      let d = Range(match.range(at: 3), in: message), let value = Int(message[d])
+    {
+      digits = value
+    }
+    formatted[argumentIndex] = formatNumberArgument(
+      arguments[argumentIndex], fractionDigits: digits, locale: locale)
+  }
+  let plain = typedTokenPattern.stringByReplacingMatches(
+    in: message, range: range, withTemplate: "{$1}")
+  return (plain, formatted)
+}
+
 private func replaceNamedToken(_ message: String, name: String, value: String) -> String? {
   let characters = Array(message)
   var result = ""
@@ -480,7 +550,7 @@ private func replaceNamedToken(_ message: String, name: String, value: String) -
     let token = String(characters[(index + 1)..<closing])
     if token == name {
       result += value
-    } else if Int(token) != nil {
+    } else if Int(token) != nil || isTypedIndexToken(token) {
       result += "{\(token)}"
     } else {
       return nil

@@ -45,6 +45,20 @@ The SwiftUI demo source is in `Examples/SwiftUIExample`. It is a configuration-
 driven, read-only client with release status, supported-locale switching, search,
 namespace filtering, pull-to-refresh, large-list rendering, and RTL support.
 
+## Build-only namespaces
+
+Namespaces set to **Build only** in GoLocalise are left out of OTA releases.
+Download them in your CI/CD pipeline, one `<namespace>.json` per namespace, from
+`GET /api/v1/projects/{projectId}/translations?environment=production&namespace=<name>&format=json`
+(ready-made Bitbucket Pipelines and GitHub Actions steps are in the Developer
+Hub), and bundle them with the app. Lookups fall back to these bundled strings.
+
+Add the `GoLocalise` folder to the app target as a folder reference, then:
+
+```swift
+let bundled = ExportedBundledTranslations(bundle: .main, subdirectory: "GoLocalise")
+```
+
 ## Installation
 
 ### Swift Package Manager
@@ -55,7 +69,7 @@ Add GoLocalise to your project using Swift Package Manager:
 dependencies: [
     .package(
         url: "https://github.com/abdallahnh/golocalise-swift.git",
-        from: "1.0.0"
+        from: "1.1.0"
     )
 ]
 ```
