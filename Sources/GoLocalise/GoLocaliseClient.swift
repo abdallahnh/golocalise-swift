@@ -56,9 +56,11 @@ public struct GoLocaliseConfiguration: Sendable {
 
 public final class GoLocaliseClient: @unchecked Sendable {
   private let configuration: GoLocaliseConfiguration
-  private let lock = NSLock()
+  let lock = NSLock()
   private var activeLocale: String
-  private var state: CacheEnvelope?
+  var state: CacheEnvelope?
+  /// appleString(forKey:namespaces:) results for the installed release (guarded by lock).
+  var appleStringCache: [String: String?] = [:]
 
   public init(configuration: GoLocaliseConfiguration) {
     self.configuration = configuration
@@ -400,6 +402,7 @@ public final class GoLocaliseClient: @unchecked Sendable {
     defer { lock.unlock() }
     guard activeLocale == locale else { return false }
     state = next
+    appleStringCache = [:]
     return true
   }
 
@@ -408,12 +411,16 @@ public final class GoLocaliseClient: @unchecked Sendable {
     defer { lock.unlock() }
     activeLocale = locale
     state = nil
+    appleStringCache = [:]
   }
 
   private func clearState(ifLocaleIs locale: String) {
     lock.lock()
     defer { lock.unlock() }
-    if activeLocale == locale { state = nil }
+    if activeLocale == locale {
+      state = nil
+      appleStringCache = [:]
+    }
   }
 }
 

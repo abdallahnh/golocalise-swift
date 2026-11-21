@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "sdk": "ios",
-  "version": "1.1.1",
-  "tag": "v1.1.1",
+  "version": "1.2.0",
+  "tag": "v1.2.0",
   "canonicalRepository": "abdallahnh/golocalise",
-  "canonicalCommit": "3203420ca664fe3936dd1ec59912c7c0083cc4b8",
+  "canonicalCommit": "8d824c27825fd3f1c6321e456314c85dd9a8afd8",
   "publicRepository": "https://github.com/abdallahnh/golocalise-swift.git",
   "dryRun": false,
-  "preparedAt": "2026-11-17T11:46:16.828Z"
+  "preparedAt": "2026-11-21T07:18:55.342Z"
 }

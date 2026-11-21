@@ -45,6 +45,38 @@ The SwiftUI demo source is in `Examples/SwiftUIExample`. It is a configuration-
 driven, read-only client with release status, supported-locale switching, search,
 namespace filtering, pull-to-refresh, large-list rendering, and RTL support.
 
+## Apps that already use `Localizable.strings`
+
+An app that reads its text with `NSLocalizedString` and formats it with
+`String(format:)` can put OTA in front of its `.strings` files without changing
+its screens. `appleString(forKey:namespaces:formatOf:)` returns a key's text as
+the GoLocalise iOS `.strings` export writes it, or `nil` when the current
+release doesn't have the key:
+
+- Placeholders in iOS form: `{0}` is `%@` (`%1$@` when the arguments aren't in
+  order), `{0:number}` is `%d`, `{0:decimal:2}` is `%.2f`, and a literal `%` is
+  `%%` (text already written as `%%` stays one literal `%`).
+- `${name}` template variables (App Shortcuts) are kept as written.
+- Plurals as in the export with **Plurals: in the .strings file**: `key` is the
+  "other" text and `key.one`, `key.few`… are its forms.
+- Namespaces are searched in the order given.
+- **Crash guard (1.2.0):** pass the bundled text as `formatOf`. When the
+  release's text reads an argument the bundled text does not, or reads it as
+  another kind, the lookup returns `nil`, so a release can never make
+  `String(format:)` crash; the app shows its bundled text instead.
+
+```swift
+// For example in a Bundle.localizedString(forKey:value:table:) override:
+let bundled = bundledLookup(key)
+if let text = client.appleString(forKey: key, namespaces: namespaces, formatOf: bundled),
+   !text.isEmpty {
+    return text
+}
+return bundled
+```
+
+The lookup never touches the network and is cached per release.
+
 ## Build-only namespaces
 
 Namespaces set to **Build only** in GoLocalise are left out of OTA releases.
@@ -69,7 +101,7 @@ Add GoLocalise to your project using Swift Package Manager:
 dependencies: [
     .package(
         url: "https://github.com/abdallahnh/golocalise-swift.git",
-        from: "1.1.1"
+        from: "1.2.0"
     )
 ]
 ```

@@ -1,7 +1,13 @@
-## 1.1.1
+## 1.2.0
 
-### Security
-- Development and build dependencies updated (vitest 4.1.12 and its toolchain) to pick up upstream security fixes. No runtime dependency changes for the SDK itself.
+### New
+- **iOS: `appleString(forKey:namespaces:)`** returns text in `.strings` form, for apps that use `Localizable.strings`. `${name}` template variables stay as written.
+- **iOS: `appleString(forKey:namespaces:formatOf:)`** returns `nil` when release text's format arguments don't fit the bundled text, so the app keeps its bundled string instead of crashing. `%%` stays a single `%`.
 
-### Unchanged
-- Same API and behaviour as 1.1.0 (build-only namespaces from CI export files). No breaking changes.
+### Fixes
+- **Android:** `translation(key, arguments)` and plurals fall back to the bundled text, then to the fallback, when release text doesn't fit the arguments. `%%` is a single `%`.
+
+### JavaScript
+- Version aligned to 1.2.0. No API changes.
+
+No breaking changes.
